@@ -29,10 +29,10 @@ class SPrompts(BaseLearner):
 
         self.args = args
         self.EPSILON = args["EPSILON"]
-        self.init_epoch = args["init_epoch"]
-        self.init_lr = args["init_lr"]
-        self.init_lr_decay = args["init_lr_decay"]
-        self.init_weight_decay = args["init_weight_decay"]
+        self.init_epoch = args.get("init_epoch", args["epochs"])
+        self.init_lr = args.get("init_lr", args["lrate"])
+        self.init_lr_decay = args.get("init_lr_decay", args["lrate_decay"])
+        self.init_weight_decay = args.get("init_weight_decay", args["weight_decay"])
         self.epochs = args["epochs"]
         self.lrate = args["lrate"]
         self.lrate_decay = args["lrate_decay"]

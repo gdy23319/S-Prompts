@@ -1,0 +1,7 @@
+source ~/S-Prompts/.venv/bin/activate
+
+/home/lenovo/S-Prompts/test_pth.bash
+
+nvidia-smi
+
+python main.py --config configs/cddb_sip.json
