@@ -77,11 +77,12 @@ class SPrompts(BaseLearner):
         if self._old_network is not None:
             self._old_network.to(self._device)
 
+        network = self._network.module if isinstance(self._network, nn.DataParallel) else self._network
         for name, param in self._network.named_parameters():
             param.requires_grad_(False)
-            if "classifier_pool" + "." + str(self._network.module.numtask - 1) in name:
+            if "classifier_pool" + "." + str(network.numtask - 1) in name:
                 param.requires_grad_(True)
-            if "prompt_pool" + "." + str(self._network.module.numtask - 1) in name:
+            if "prompt_pool" + "." + str(network.numtask - 1) in name:
                 param.requires_grad_(True)
 
         # Double check
