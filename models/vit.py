@@ -199,6 +199,28 @@ class Attention(nn.Module):
         x = self.proj_drop(x)
         return x
 
+    def forward_with_lora(self, x, lora_A_q, lora_B_q, lora_A_v, lora_B_v, scale):
+        B, N, C = x.shape
+        qkv = self.qkv(x).reshape(B, N, 3, self.num_heads, C // self.num_heads).permute(2, 0, 3, 1, 4)
+        q, k, v = qkv.unbind(0)
+
+        # LoRA deltas: x [B,N,C] -> [B,N,rank] -> [B,N,C] -> reshape to multi-head
+        delta_q = ((x @ lora_A_q.t()) @ lora_B_q.t()) * scale
+        delta_q = delta_q.reshape(B, N, self.num_heads, C // self.num_heads).permute(0, 2, 1, 3)
+        delta_v = ((x @ lora_A_v.t()) @ lora_B_v.t()) * scale
+        delta_v = delta_v.reshape(B, N, self.num_heads, C // self.num_heads).permute(0, 2, 1, 3)
+        q = q + delta_q
+        v = v + delta_v
+
+        attn = (q @ k.transpose(-2, -1)) * self.scale
+        attn = attn.softmax(dim=-1)
+        attn = self.attn_drop(attn)
+
+        x = (attn @ v).transpose(1, 2).reshape(B, N, C)
+        x = self.proj(x)
+        x = self.proj_drop(x)
+        return x
+
 
 class LayerScale(nn.Module):
     def __init__(self, dim, init_values=1e-5, inplace=False):
@@ -230,6 +252,16 @@ class Block(nn.Module):
 
     def forward(self, x):
         x = x + self.drop_path1(self.ls1(self.attn(self.norm1(x))))
+        x = x + self.drop_path2(self.ls2(self.mlp(self.norm2(x))))
+        return x
+
+    def forward_with_lora(self, x, lora_set, layer_idx):
+        x = x + self.drop_path1(self.ls1(self.attn.forward_with_lora(
+            self.norm1(x),
+            lora_set.lora_A_q[layer_idx], lora_set.lora_B_q[layer_idx],
+            lora_set.lora_A_v[layer_idx], lora_set.lora_B_v[layer_idx],
+            lora_set.scale,
+        )))
         x = x + self.drop_path2(self.ls2(self.mlp(self.norm2(x))))
         return x
 

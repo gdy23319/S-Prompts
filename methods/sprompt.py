@@ -13,6 +13,7 @@ from methods.base import BaseLearner
 from utils.toolkit import tensor2numpy, accuracy_domain
 from models.sinet import SiNet
 from models.slinet import SliNet
+from models.sinet_lora import SiNet_LoRA
 
 
 class SPrompts(BaseLearner):
@@ -24,6 +25,8 @@ class SPrompts(BaseLearner):
             self._network = SliNet(args)
         elif args["net_type"] == "sip":
             self._network = SiNet(args)
+        elif args["net_type"] == "slora":
+            self._network = SiNet_LoRA(args)
         else:
             raise ValueError('Unknown net: {}.'.format(args["net_type"]))
 
@@ -83,6 +86,8 @@ class SPrompts(BaseLearner):
             if "classifier_pool" + "." + str(network.numtask - 1) in name:
                 param.requires_grad_(True)
             if "prompt_pool" + "." + str(network.numtask - 1) in name:
+                param.requires_grad_(True)
+            if "lora_pool" + "." + str(network.numtask - 1) in name:
                 param.requires_grad_(True)
 
         # Double check
